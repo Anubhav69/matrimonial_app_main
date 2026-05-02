@@ -1,0 +1,284 @@
+/**
+ * Quick Test Examples for User Authentication API
+ * 
+ * Use these examples to quickly test the authentication endpoints
+ * Copy and paste these into Postman, Insomnia, or your API testing tool
+ */
+
+// ============================================
+// 1. SIGN-UP WITH EMAIL ONLY
+// ============================================
+POST /api/users/signup
+Content-Type: application/json
+
+{
+  "email": "sarah@example.com",
+  "password": "SecurePass123"
+}
+
+// Expected Response (201):
+// {
+//   "success": true,
+//   "message": "User registered successfully",
+//   "user": {
+//     "id": 1,
+//     "email": "sarah@example.com",
+//     "phone": null,
+//     "role": "user",
+//     "status": "active",
+//     "created_at": "2024-05-02T10:30:00.000Z"
+//   },
+//   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+// }
+
+
+// ============================================
+// 2. SIGN-UP WITH PHONE ONLY
+// ============================================
+POST /api/users/signup
+Content-Type: application/json
+
+{
+  "phone": "9876543210",
+  "password": "SecurePass123"
+}
+
+// Expected Response (201):
+// {
+//   "success": true,
+//   "message": "User registered successfully",
+//   "user": {
+//     "id": 2,
+//     "email": null,
+//     "phone": "9876543210",
+//     "role": "user",
+//     "status": "active",
+//     "created_at": "2024-05-02T10:35:00.000Z"
+//   },
+//   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+// }
+
+
+// ============================================
+// 3. SIGN-UP WITH BOTH EMAIL AND PHONE
+// ============================================
+POST /api/users/signup
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "phone": "9123456789",
+  "password": "MySecurePassword123"
+}
+
+// Expected Response (201):
+// {
+//   "success": true,
+//   "message": "User registered successfully",
+//   "user": {
+//     "id": 3,
+//     "email": "john.doe@example.com",
+//     "phone": "9123456789",
+//     "role": "user",
+//     "status": "active",
+//     "created_at": "2024-05-02T10:40:00.000Z"
+//   },
+//   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+// }
+
+
+// ============================================
+// 4. LOGIN WITH EMAIL
+// ============================================
+POST /api/users/login
+Content-Type: application/json
+
+{
+  "emailOrPhone": "sarah@example.com",
+  "password": "SecurePass123"
+}
+
+// Expected Response (200):
+// {
+//   "success": true,
+//   "message": "Login successful",
+//   "user": {
+//     "id": 1,
+//     "email": "sarah@example.com",
+//     "phone": null,
+//     "role": "user",
+//     "status": "active",
+//     "is_verified": false
+//   },
+//   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+// }
+
+
+// ============================================
+// 5. LOGIN WITH PHONE
+// ============================================
+POST /api/users/login
+Content-Type: application/json
+
+{
+  "emailOrPhone": "9876543210",
+  "password": "SecurePass123"
+}
+
+// Expected Response (200):
+// {
+//   "success": true,
+//   "message": "Login successful",
+//   "user": {
+//     "id": 2,
+//     "email": null,
+//     "phone": "9876543210",
+//     "role": "user",
+//     "status": "active",
+//     "is_verified": false
+//   },
+//   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+// }
+
+
+// ============================================
+// 6. LOGIN WITH WRONG PASSWORD
+// ============================================
+POST /api/users/login
+Content-Type: application/json
+
+{
+  "emailOrPhone": "sarah@example.com",
+  "password": "WrongPassword123"
+}
+
+// Expected Response (401):
+// {
+//   "success": false,
+//   "message": "Login failed",
+//   "error": "Invalid email/phone or password"
+// }
+
+
+// ============================================
+// 7. SIGN-UP WITH DUPLICATE EMAIL
+// ============================================
+POST /api/users/signup
+Content-Type: application/json
+
+{
+  "email": "sarah@example.com",
+  "password": "AnotherPassword123"
+}
+
+// Expected Response (409):
+// {
+//   "success": false,
+//   "message": "Sign-up failed",
+//   "error": "Email already registered"
+// }
+
+
+// ============================================
+// 8. SIGN-UP WITH INVALID EMAIL FORMAT
+// ============================================
+POST /api/users/signup
+Content-Type: application/json
+
+{
+  "email": "invalidemail",
+  "password": "SecurePass123"
+}
+
+// Expected Response (400):
+// {
+//   "success": false,
+//   "message": "Sign-up failed",
+//   "error": "Invalid email format"
+// }
+
+
+// ============================================
+// 9. SIGN-UP WITH SHORT PASSWORD
+// ============================================
+POST /api/users/signup
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "short"
+}
+
+// Expected Response (400):
+// {
+//   "success": false,
+//   "message": "Sign-up failed",
+//   "error": "Password must be at least 6 characters long"
+// }
+
+
+// ============================================
+// 10. SIGN-UP WITHOUT EMAIL OR PHONE
+// ============================================
+POST /api/users/signup
+Content-Type: application/json
+
+{
+  "password": "SecurePass123"
+}
+
+// Expected Response (400):
+// {
+//   "success": false,
+//   "message": "Sign-up failed",
+//   "error": "Either email or phone number must be provided"
+// }
+
+
+// ============================================
+// CURL COMMAND EXAMPLES
+// ============================================
+
+// Sign-up with email (curl)
+// curl -X POST http://localhost:3000/api/users/signup \
+//   -H "Content-Type: application/json" \
+//   -d '{"email":"user@example.com","password":"SecurePass123"}'
+
+// Login with email (curl)
+// curl -X POST http://localhost:3000/api/users/login \
+//   -H "Content-Type: application/json" \
+//   -d '{"emailOrPhone":"user@example.com","password":"SecurePass123"}'
+
+// Login with phone (curl)
+// curl -X POST http://localhost:3000/api/users/login \
+//   -H "Content-Type: application/json" \
+//   -d '{"emailOrPhone":"9876543210","password":"SecurePass123"}'
+
+
+// ============================================
+// POSTMAN / INSOMNIA IMPORT
+// ============================================
+
+// If using Postman/Insomnia:
+// 1. Create a new request collection
+// 2. Create new request
+// 3. Set method to POST
+// 4. Enter URL: http://localhost:3000/api/users/signup
+// 5. Go to Body tab
+// 6. Select "raw" and "JSON"
+// 7. Paste the JSON from above examples
+// 8. Click Send
+
+
+// ============================================
+// USING THE TOKEN IN REQUESTS
+// ============================================
+
+// After login/signup, you'll receive a token. Use it like this:
+
+GET /api/users/profile
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+// Or in curl:
+// curl -X GET http://localhost:3000/api/users/profile \
+//   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
