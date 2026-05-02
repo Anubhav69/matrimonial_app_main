@@ -8,6 +8,7 @@ console.log('ENV CHECK:', {
   user: process.env.MYSQL_USER,
   db: process.env.MYSQL_DATABASE,
   port: process.env.MYSQL_PORT,
+  passwordSet: !!process.env.MYSQL_PASSWORD,
 });
 
 const sequelize = new Sequelize(
