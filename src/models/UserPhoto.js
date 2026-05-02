@@ -4,12 +4,12 @@ import User from './User.js';
 
 const UserPhoto = sequelize.define('UserPhoto', {
   id: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.BIGINT.UNSIGNED,
     primaryKey: true,
     autoIncrement: true,
   },
   user_id: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.BIGINT.UNSIGNED,
     references: { model: 'users', key: 'id' },
   },
   photo_url: DataTypes.STRING(255),

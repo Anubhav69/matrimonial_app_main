@@ -4,12 +4,12 @@ import User from './User.js';
 
 const UserProfile = sequelize.define('UserProfile', {
   id: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.BIGINT.UNSIGNED,
     primaryKey: true,
     autoIncrement: true,
   },
   user_id: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.BIGINT.UNSIGNED,
     references: { model: 'users', key: 'id' },
   },
   first_name: DataTypes.STRING(100),

@@ -4,12 +4,12 @@ import User from './User.js';
 
 const CareerDetail = sequelize.define('CareerDetail', {
   id: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.BIGINT.UNSIGNED,
     primaryKey: true,
     autoIncrement: true,
   },
   user_id: {
-    type: DataTypes.BIGINT,
+    type: DataTypes.BIGINT.UNSIGNED,
     allowNull: false,
     references: { model: 'users', key: 'id' },
   },
