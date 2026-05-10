@@ -72,4 +72,17 @@ const deleteUser = async (req, res) => {
   }
 };
 
-export { getAllUsers, getUserById, deleteUser };
+const searchUsers = async (req, res) => {
+  try {
+    const { page, limit, sort_by, sort_order, ...filters } = req.query;
+    const result = await UserService.searchUsers(
+      { ...filters, sort_by, sort_order },
+      { page, limit }
+    );
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export { getAllUsers, getUserById, deleteUser, searchUsers };

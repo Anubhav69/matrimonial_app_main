@@ -51,16 +51,23 @@ class UserPhotoService {
   }
 
   static async getPhotos(userId) {
+    const baseUrl = `${process.env.APP_URL || 'http://localhost:3000'}`;
+
     const photos = await UserPhoto.findAll({
       where: { user_id: userId },
       order: [['is_primary', 'DESC'], ['uploaded_at', 'ASC']]
     });
 
+    const format = (photo) => ({
+      ...photo.toJSON(),
+      photo_url: `${baseUrl}/${photo.photo_url}`
+    });
+
     return {
       success: true,
       data: {
-        primary: photos.find(p => p.is_primary) || null,
-        others: photos.filter(p => !p.is_primary)
+        primary: photos.find(p => p.is_primary) ? format(photos.find(p => p.is_primary)) : null,
+        others: photos.filter(p => !p.is_primary).map(format)
       }
     };
   }

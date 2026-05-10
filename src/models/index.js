@@ -4,6 +4,8 @@ import UserProfile from './UserProfile.js';
 import CareerDetail from './CareerDetail.js';
 import UserEducation from './UserEducation.js';
 import UserPhoto from './UserPhoto.js';
+import UserInteraction from './UserInteraction.js';
+import Message from './Message.js';
 
 const connectDB = async () => {
   await sequelize.authenticate();
@@ -12,4 +14,4 @@ const connectDB = async () => {
   console.log('Database synced.');
 };
 
-export { sequelize, connectDB, User, UserProfile, CareerDetail, UserEducation, UserPhoto };
+export { sequelize, connectDB, User, UserProfile, CareerDetail, UserEducation, UserPhoto, UserInteraction, Message };
