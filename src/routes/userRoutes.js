@@ -4,7 +4,7 @@ import { authenticateToken } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/search', searchUsers);
+router.get('/search', authenticateToken, searchUsers);
 
 /**
  * User Management Routes

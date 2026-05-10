@@ -77,7 +77,8 @@ const searchUsers = async (req, res) => {
     const { page, limit, sort_by, sort_order, ...filters } = req.query;
     const result = await UserService.searchUsers(
       { ...filters, sort_by, sort_order },
-      { page, limit }
+      { page, limit },
+      req.user.id
     );
     res.status(200).json(result);
   } catch (error) {

@@ -39,7 +39,7 @@ class UserService {
   /**
    * Delete user (soft delete)
    */
-  static async searchUsers(filters, pagination) {
+  static async searchUsers(filters, pagination, excludeId) {
     const {
       gender, marital_status, religion, caste, mother_tongue,
       country, state, city,
@@ -117,7 +117,7 @@ class UserService {
       : { model: UserPhoto, where: { is_primary: true }, required: false, attributes: ['photo_url', 'is_primary'] };
 
     const { count, rows } = await User.findAndCountAll({
-      where: { is_deleted: false, status: 'active' },
+      where: { is_deleted: false, status: 'active', id: { [Op.ne]: excludeId } },
       attributes: { exclude: ['password_hash'] },
       include: [
         { model: UserProfile, where: profileWhere, required: true },
