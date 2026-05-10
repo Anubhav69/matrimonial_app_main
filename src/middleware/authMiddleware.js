@@ -5,7 +5,7 @@
  * Use this to protect routes that require authentication
  */
 
-import UserService from '../services/userService.js';
+import AuthService from '../services/authService.js';
 
 /**
  * Verify JWT Token Middleware
@@ -30,8 +30,8 @@ const authenticateToken = (req, res, next) => {
 
   // Verify the token
   try {
-    // Use UserService to verify token and get decoded payload
-    const decoded = UserService.verifyToken(token);
+    // Use AuthService to verify token and get decoded payload
+    const decoded = AuthService.verifyToken(token);
     
     // Attach decoded user data to request object
     req.user = decoded;
