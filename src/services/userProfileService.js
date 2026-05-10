@@ -62,21 +62,28 @@ class UserProfileService {
    * Get user profile by user ID
    */
   static async getProfileByUserId(userId) {
-    const profile = await UserProfile.findOne({
-      where: { user_id: userId },
+    const user = await User.findOne({
+      where: { id: userId, is_deleted: false },
+      attributes: ['id', 'email', 'phone', 'role', 'status'],
       include: [
-        {
-          model: User,
-          attributes: ['id', 'email', 'phone', 'role', 'status']
-        },
+        { model: UserProfile },
         { model: CareerDetail },
         { model: UserEducation }
       ]
     });
 
-    if (!profile) throw new Error('Profile not found');
+    if (!user || !user.UserProfile) throw new Error('Profile not found');
 
-    return profile;
+    return {
+      user_id: user.id,
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      status: user.status,
+      profile: user.UserProfile,
+      career_details: user.CareerDetails,
+      user_education: user.UserEducations
+    };
   }
 
   /**
