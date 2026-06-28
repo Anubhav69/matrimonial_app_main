@@ -1,7 +1,7 @@
 import { Op } from 'sequelize';
 import { User, UserProfile, CareerDetail, UserEducation, UserPhoto } from '../models/index.js';
 
-const baseUrl = process.env.APP_URL || 'http://localhost:3000';
+const baseUrl = process.env.APP_URL || 'http://44.211.53.65:3000';
 
 const calculateAge = (dob) => {
   const today = new Date();
