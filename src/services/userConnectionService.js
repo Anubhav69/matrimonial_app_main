@@ -2,7 +2,7 @@ import { Op } from 'sequelize';
 import { UserInteraction, User, UserProfile, UserPhoto } from '../models/index.js';
 import { sequelize } from '../models/index.js';
 
-const baseUrl = process.env.APP_URL || 'http://localhost:3000';
+const baseUrl = process.env.APP_URL || 'http://44.211.53.65:3000';
 
 const formatUser = (user) => {
   const profile = user.UserProfile;

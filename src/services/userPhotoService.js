@@ -51,7 +51,7 @@ class UserPhotoService {
   }
 
   static async getPhotos(userId) {
-    const baseUrl = `${process.env.APP_URL || 'http://localhost:3000'}`;
+    const baseUrl = `${process.env.APP_URL || 'http://44.211.53.65:3000'}`;
 
     const photos = await UserPhoto.findAll({
       where: { user_id: userId },
