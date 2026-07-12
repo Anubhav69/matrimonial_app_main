@@ -4,40 +4,62 @@ import fs from 'fs';
 
 const MAX_OTHER_PHOTOS = 4;
 
+const cleanupUploadedFiles = (files = []) => {
+  files.forEach((file) => {
+    if (file.path && fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+  });
+};
+
 class UserPhotoService {
 
   static async uploadPhotos(userId, files, primaryIndex) {
     if (!files || files.length === 0)
       throw new Error('No files uploaded');
 
-    const hasPrimaryInRequest = primaryIndex !== undefined && primaryIndex !== null && primaryIndex !== -1;
+    const hasPrimaryInRequest = primaryIndex !== undefined
+      && primaryIndex !== null
+      && primaryIndex !== ''
+      && String(primaryIndex) !== '-1';
+    const parsedPrimaryIndex = hasPrimaryInRequest ? parseInt(primaryIndex, 10) : null;
 
-    if (!hasPrimaryInRequest)
-      throw new Error('primary_index is required. Please specify which photo is the primary photo');
-
-    if (parseInt(primaryIndex) >= files.length)
+    if (hasPrimaryInRequest && (Number.isNaN(parsedPrimaryIndex) || parsedPrimaryIndex < 0 || parsedPrimaryIndex >= files.length)) {
+      cleanupUploadedFiles(files);
       throw new Error(`primary_index ${primaryIndex} is out of range. You uploaded ${files.length} file(s)`);
+    }
 
     const existing = await UserPhoto.findAll({ where: { user_id: userId } });
     const existingPrimary = existing.find(p => p.is_primary);
     const existingOthers = existing.filter(p => !p.is_primary);
 
-    if (hasPrimaryInRequest && existingPrimary)
-      throw new Error('A primary photo already exists. Update it instead of uploading a new one');
+    if (!existingPrimary && !hasPrimaryInRequest) {
+      cleanupUploadedFiles(files);
+      throw new Error('primary_index is required for the first upload. Please specify which photo is the primary photo');
+    }
 
-    const newOthersCount = hasPrimaryInRequest ? files.length - 1 : files.length;
-    if (existingOthers.length + newOthersCount > MAX_OTHER_PHOTOS) {
-      // Delete uploaded files since we're rejecting
-      files.forEach(f => fs.existsSync(f.path) && fs.unlinkSync(f.path));
+    const willReplacePrimary = Boolean(existingPrimary && hasPrimaryInRequest);
+    const newOthersCount = files.length - (hasPrimaryInRequest ? 1 : 0);
+    const oldPrimaryBecomesOtherCount = willReplacePrimary ? 1 : 0;
+
+    if (existingOthers.length + oldPrimaryBecomesOtherCount + newOthersCount > MAX_OTHER_PHOTOS) {
+      cleanupUploadedFiles(files);
       throw new Error(`Maximum ${MAX_OTHER_PHOTOS} non-primary photos allowed. You have ${existingOthers.length} already`);
     }
 
     const result = await sequelize.transaction(async (t) => {
+      if (willReplacePrimary) {
+        await UserPhoto.update(
+          { is_primary: false },
+          { where: { user_id: userId, is_primary: true }, transaction: t }
+        );
+      }
+
       return await UserPhoto.bulkCreate(
         files.map((file, i) => ({
           user_id: userId,
           photo_url: file.path,
-          is_primary: hasPrimaryInRequest && parseInt(primaryIndex) === i
+          is_primary: hasPrimaryInRequest && parsedPrimaryIndex === i
         })),
         { transaction: t }
       );
