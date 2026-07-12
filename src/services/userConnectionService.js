@@ -1,6 +1,5 @@
 import { Op } from 'sequelize';
 import { UserInteraction, User, UserProfile, UserPhoto } from '../models/index.js';
-import { sequelize } from '../models/index.js';
 
 const baseUrl = process.env.APP_URL || 'http://44.211.53.65:3000';
 
@@ -18,7 +17,7 @@ const formatUser = (user) => {
   };
 };
 
-const userInclude = [
+const getUserInclude = () => [
   { model: UserProfile, attributes: ['first_name', 'last_name', 'city'] },
   { model: UserPhoto, where: { is_primary: true }, required: false, attributes: ['photo_url', 'is_primary'] }
 ];
@@ -109,7 +108,7 @@ class UserConnectionService {
   static async getReceivedInterests(userId) {
     const interactions = await UserInteraction.findAll({
       where: { receiver_id: userId, type: 'interest' },
-      include: [{ model: User, as: 'Sender', include: userInclude }],
+      include: [{ model: User, as: 'Sender', include: getUserInclude() }],
       order: [['created_at', 'DESC']]
     });
 
@@ -127,7 +126,7 @@ class UserConnectionService {
   static async getSentInterests(userId) {
     const interactions = await UserInteraction.findAll({
       where: { sender_id: userId, type: 'interest' },
-      include: [{ model: User, as: 'Receiver', include: userInclude }],
+      include: [{ model: User, as: 'Receiver', include: getUserInclude() }],
       order: [['created_at', 'DESC']]
     });
 
@@ -148,21 +147,30 @@ class UserConnectionService {
         type: 'accepted',
         [Op.or]: [{ sender_id: userId }, { receiver_id: userId }]
       },
-      include: [
-        { model: User, as: 'Sender', include: userInclude },
-        { model: User, as: 'Receiver', include: userInclude }
-      ],
       order: [['created_at', 'DESC']]
     });
+
+    const connectedUserIds = interactions.map(i =>
+      String(i.sender_id) === String(userId) ? i.receiver_id : i.sender_id
+    );
+
+    const users = await User.findAll({
+      where: { id: { [Op.in]: connectedUserIds }, is_deleted: false },
+      attributes: ['id', 'email', 'phone'],
+      include: getUserInclude()
+    });
+
+    const userMap = new Map(users.map(user => [String(user.id), user]));
 
     return {
       success: true,
       data: interactions.map(i => {
-        const connectedUser = i.sender_id == userId ? i.Receiver : i.Sender;
+        const connectedUserId = String(i.sender_id) === String(userId) ? i.receiver_id : i.sender_id;
+        const connectedUser = userMap.get(String(connectedUserId));
         return {
           interaction_id: i.id,
           connected_at: i.created_at,
-          user: formatUser(connectedUser)
+          user: connectedUser ? formatUser(connectedUser) : null
         };
       })
     };
@@ -172,7 +180,7 @@ class UserConnectionService {
   static async getBlockedUsers(userId) {
     const interactions = await UserInteraction.findAll({
       where: { sender_id: userId, type: 'blocked' },
-      include: [{ model: User, as: 'Receiver', include: userInclude }],
+      include: [{ model: User, as: 'Receiver', include: getUserInclude() }],
       order: [['created_at', 'DESC']]
     });
 
