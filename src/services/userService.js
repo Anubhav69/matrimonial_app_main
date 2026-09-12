@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { User, UserProfile, CareerDetail, UserEducation, UserPhoto } from '../models/index.js';
+import { User, UserProfile, CareerDetail, UserEducation, UserPhoto, UserInteraction } from '../models/index.js';
 
 const baseUrl = process.env.APP_URL || 'http://44.211.53.65:3000';
 
@@ -116,8 +116,26 @@ class UserService {
       ? { model: UserPhoto, where: { is_primary: true }, required: true,  attributes: ['photo_url', 'is_primary'] }
       : { model: UserPhoto, where: { is_primary: true }, required: false, attributes: ['photo_url', 'is_primary'] };
 
+    const hiddenInteractions = await UserInteraction.findAll({
+      where: {
+        type: { [Op.in]: ['interest', 'accepted', 'rejected', 'blocked'] },
+        [Op.or]: [{ sender_id: excludeId }, { receiver_id: excludeId }]
+      },
+      attributes: ['sender_id', 'receiver_id']
+    });
+
+    const hiddenUserIds = hiddenInteractions.map((interaction) =>
+      String(interaction.sender_id) === String(excludeId) ? interaction.receiver_id : interaction.sender_id
+    );
+
+    const userWhere = {
+      is_deleted: false,
+      status: 'active',
+      id: hiddenUserIds.length ? { [Op.notIn]: [excludeId, ...hiddenUserIds] } : { [Op.ne]: excludeId }
+    };
+
     const { count, rows } = await User.findAndCountAll({
-      where: { is_deleted: false, status: 'active', id: { [Op.ne]: excludeId } },
+      where: userWhere,
       attributes: { exclude: ['password_hash'] },
       include: [
         { model: UserProfile, where: profileWhere, required: true },

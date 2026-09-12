@@ -1,10 +1,11 @@
 import express from 'express';
 import { getAllUsers, getUserById, deleteUser, searchUsers } from '../controllers/userController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
+import { requireCompleteProfile } from '../middleware/profileCompletionMiddleware.js';
 
 const router = express.Router();
 
-router.get('/search', authenticateToken, searchUsers);
+router.get('/search', authenticateToken, requireCompleteProfile, searchUsers);
 
 /**
  * User Management Routes

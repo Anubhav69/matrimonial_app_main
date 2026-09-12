@@ -2,6 +2,8 @@ import express from 'express';
 import upload from '../config/multer.js';
 import { uploadPhotos, getPhotos, updatePhoto, deletePhoto } from '../controllers/userPhotoController.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
+import { requireCompleteProfileForOtherUser } from '../middleware/profileCompletionMiddleware.js';
+import { requireOwnParam } from '../middleware/ownershipMiddleware.js';
 
 const router = express.Router();
 
@@ -13,15 +15,15 @@ const router = express.Router();
  */
 
 // POST   /api/v1/photos/:userId           - upload photos (max 5 files)
-router.post('/:userId', authenticateToken, upload.array('photos', 5), uploadPhotos);
+router.post('/:userId', authenticateToken, requireOwnParam('userId'), upload.array('photos', 5), uploadPhotos);
 
 // GET    /api/v1/photos/:userId           - get all photos
-router.get('/:userId', authenticateToken, getPhotos);
+router.get('/:userId', authenticateToken, requireCompleteProfileForOtherUser, getPhotos);
 
 // PUT    /api/v1/photos/:userId/:photoId  - update photo (set as primary etc.)
-router.put('/:userId/:photoId', authenticateToken, updatePhoto);
+router.put('/:userId/:photoId', authenticateToken, requireOwnParam('userId'), updatePhoto);
 
 // DELETE /api/v1/photos/:userId/:photoId  - delete a photo
-router.delete('/:userId/:photoId', authenticateToken, deletePhoto);
+router.delete('/:userId/:photoId', authenticateToken, requireOwnParam('userId'), deletePhoto);
 
 export default router;

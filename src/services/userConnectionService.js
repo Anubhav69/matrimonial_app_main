@@ -33,9 +33,14 @@ class UserConnectionService {
     if (!receiver) throw new Error('User not found');
 
     const existing = await UserInteraction.findOne({
-      where: { sender_id: senderId, receiver_id: receiverId }
+      where: {
+        [Op.or]: [
+          { sender_id: senderId, receiver_id: receiverId },
+          { sender_id: receiverId, receiver_id: senderId }
+        ]
+      }
     });
-    if (existing) throw new Error(`You have already ${existing.type} this user`);
+    if (existing) throw new Error(`Interaction already exists as ${existing.type}`);
 
     // Check if receiver has blocked sender
     const blocked = await UserInteraction.findOne({
@@ -78,6 +83,10 @@ class UserConnectionService {
 
     const receiver = await User.findOne({ where: { id: receiverId, is_deleted: false } });
     if (!receiver) throw new Error('User not found');
+
+    await UserInteraction.destroy({
+      where: { sender_id: receiverId, receiver_id: senderId, type: { [Op.ne]: 'blocked' } }
+    });
 
     const existing = await UserInteraction.findOne({
       where: { sender_id: senderId, receiver_id: receiverId }
