@@ -8,6 +8,7 @@ import { sequelize } from '../models/index.js';
 class UserProfileService {
   /**
    * Create user profile
+   * New profiles start with profile_status = 'pending'
    */
   static async createProfile(userId, profileData) {
     const { career_details = [], user_education = [], ...profileFields } = profileData;
@@ -24,7 +25,7 @@ class UserProfileService {
 
     const result = await sequelize.transaction(async (t) => {
       const profile = await UserProfile.create(
-        { user_id: userId, ...profileFields },
+        { user_id: userId, ...profileFields, profile_status: 'pending' },
         { transaction: t }
       );
 
@@ -49,7 +50,7 @@ class UserProfileService {
 
     return {
       success: true,
-      message: 'Profile created successfully',
+      message: 'Profile created successfully. It is pending admin approval.',
       data: {
         profile: result.profile,
         career_details: result.careers,
@@ -60,8 +61,11 @@ class UserProfileService {
 
   /**
    * Get user profile by user ID
+   * 
+   * @param {number} userId - ID of the profile to fetch
+   * @param {object} requestingUser - The authenticated user making the request (from req.user)
    */
-  static async getProfileByUserId(userId) {
+  static async getProfileByUserId(userId, requestingUser = null) {
     const user = await User.findOne({
       where: { id: userId, is_deleted: false },
       attributes: ['id', 'email', 'phone', 'role', 'status'],
@@ -73,6 +77,15 @@ class UserProfileService {
     });
 
     if (!user || !user.UserProfile) throw new Error('Profile not found');
+
+    // If a regular user is viewing someone else's profile,
+    // only allow viewing if the profile is published
+    if (requestingUser && requestingUser.role === 'user') {
+      const isOwnProfile = String(requestingUser.id) === String(userId);
+      if (!isOwnProfile && user.UserProfile.profile_status !== 'published') {
+        throw new Error('Profile not found');
+      }
+    }
 
     return {
       user_id: user.id,
@@ -88,6 +101,7 @@ class UserProfileService {
 
   /**
    * Update user profile
+   * If profile was rejected, updating it resets status to 'pending' for re-review
    */
   static async updateProfile(userId, profileData) {
     const { career_details, user_education, ...profileFields } = profileData;
@@ -99,8 +113,14 @@ class UserProfileService {
     const profile = await UserProfile.findOne({ where: { user_id: userId } });
     if (!profile) throw new Error('Profile not found');
 
+    // If profile was rejected, reset to pending on update so admin can re-review
+    const updateFields = { ...profileFields };
+    if (profile.profile_status === 'rejected') {
+      updateFields.profile_status = 'pending';
+    }
+
     const result = await sequelize.transaction(async (t) => {
-      await profile.update(profileFields, { transaction: t });
+      await profile.update(updateFields, { transaction: t });
 
       let careers = [];
       if (career_details) {
@@ -147,7 +167,9 @@ class UserProfileService {
 
     return {
       success: true,
-      message: 'Profile updated successfully',
+      message: profile.profile_status === 'pending' && profileData.profile_status !== 'pending'
+        ? 'Profile updated successfully. It has been resubmitted for admin approval.'
+        : 'Profile updated successfully',
       data: {
         profile: result.profile,
         ...(career_details && { career_details: result.careers }),

@@ -8,6 +8,7 @@ import userProfileRoutes from './routes/userProfileRoutes.js';
 import userPhotoRoutes from './routes/userPhotoRoutes.js';
 import userConnectionRoutes from './routes/userConnectionRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 import { globalRateLimiter } from './middleware/rateLimiter.js';
 import { connectDB } from './models/index.js';
 import initSocket from './socket/socketHandler.js';
@@ -31,6 +32,7 @@ app.use('/api/v1/profiles', userProfileRoutes);
 app.use('/api/v1/photos', userPhotoRoutes);
 app.use('/api/v1/connections', userConnectionRoutes);
 app.use('/api/v1/chat', chatRoutes);
+app.use('/api/v1/admin', adminRoutes);
 
 app.use(errorHandler);
 

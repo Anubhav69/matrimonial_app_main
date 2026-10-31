@@ -26,6 +26,10 @@ const UserProfile = sequelize.define('UserProfile', {
   city: DataTypes.STRING(100),
   bio: DataTypes.TEXT,
   profile_photo: DataTypes.STRING(255),
+  profile_status: {
+    type: DataTypes.ENUM('pending', 'published', 'rejected'),
+    defaultValue: 'pending',
+  },
 }, {
   tableName: 'user_profiles',
   timestamps: false,

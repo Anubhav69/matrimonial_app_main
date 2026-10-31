@@ -31,7 +31,7 @@ const createProfile = async (req, res) => {
 const getProfile = async (req, res) => {
   try {
     const { userId } = req.params;
-    const profile = await UserProfileService.getProfileByUserId(userId);
+    const profile = await UserProfileService.getProfileByUserId(userId, req.user);
 
     res.status(200).json({
       success: true,

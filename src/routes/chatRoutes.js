@@ -5,7 +5,7 @@ import { requireOwnParam } from '../middleware/ownershipMiddleware.js';
 
 const router = express.Router();
 
-// GET    /api/v1/chat/:userId/history/:otherUserId     - get chat history between two users
+// GET    /api/v1/chat/:userId/history/:otherUserId     - get chat history with another user
 router.get('/:userId/history/:otherUserId', authenticateToken, requireOwnParam('userId'), getChatHistory);
 
 // GET    /api/v1/chat/:userId/conversations            - get all conversations (inbox)

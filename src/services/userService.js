@@ -37,7 +37,7 @@ class UserService {
   }
 
   /**
-   * Delete user (soft delete)
+   * Search users - only shows profiles with profile_status = 'published'
    */
   static async searchUsers(filters, pagination, excludeId) {
     const {
@@ -62,7 +62,10 @@ class UserService {
     const validSortOrder = sort_order?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
     // ── Profile filters ──────────────────────────────────────────────────────
-    const profileWhere = {};
+    const profileWhere = {
+      // Only show published profiles to regular users
+      profile_status: 'published'
+    };
     if (gender)        profileWhere.gender        = gender;
     if (marital_status) profileWhere.marital_status = Array.isArray(marital_status) ? { [Op.in]: marital_status } : marital_status;
     if (religion)      profileWhere.religion      = { [Op.like]: `%${religion}%` };
@@ -131,6 +134,7 @@ class UserService {
     const userWhere = {
       is_deleted: false,
       status: 'active',
+      role: 'user',
       id: hiddenUserIds.length ? { [Op.notIn]: [excludeId, ...hiddenUserIds] } : { [Op.ne]: excludeId }
     };
 
