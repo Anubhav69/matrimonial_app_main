@@ -281,7 +281,7 @@ All endpoints in this section require `Authorization: Bearer <token>` and approp
 ### 7.4 Filter & Search All Profiles
 - **Endpoint**: `GET /api/v1/admin/profiles`
 - **Access**: `admin`, `super_admin`
-- **Query Params**: `status` (`pending`|`published`|`rejected`), `search` (email or phone), `page`, `limit`
+- **Query Params**: `status` (`pending`|`published`|`rejected`), `search` (name, email, or phone), `page`, `limit`
 
 ---
 
@@ -363,8 +363,18 @@ All endpoints in this section require `Authorization: Bearer <token>` and approp
 
 ### 7.11 List All Admins
 - **Endpoint**: `GET /api/v1/admin/admins`
+- **Access**: `admin`, `super_admin`
+- **Description**: Admins see peer admins only (not their own account or super admins). Super admins see all active admins and super admins.
+
+### 7.12 Update an Admin
+- **Endpoint**: `PATCH /api/v1/admin/admins/:id`
 - **Access**: `super_admin` only
-- **Description**: Returns all users with `role = 'admin'`.
+- **Description**: Updates an active regular admin's email, phone, or status (`active`/`inactive`). Super-admin accounts cannot be changed through this endpoint.
+
+### 7.13 Deactivate an Admin
+- **Endpoint**: `DELETE /api/v1/admin/admins/:id`
+- **Access**: `super_admin` only
+- **Description**: Soft-deletes a regular admin and sets its status to `inactive`. The account history remains in the database; super-admin accounts cannot be deactivated through this endpoint.
 
 ---
 

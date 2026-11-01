@@ -196,16 +196,45 @@ const rejectAdminRequest = async (req, res) => {
 
 /**
  * GET /api/v1/admin/admins
- * List all admins (Super Admin only)
+ * Admins see their peers; super admins see admins and super admins
  */
 const getAllAdmins = async (req, res) => {
   try {
-    const result = await AdminService.getAllAdmins();
+    const result = await AdminService.getAllAdmins(req.user.role, req.user.id);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({
       success: false,
       message: 'Failed to get admins',
+      error: error.message
+    });
+  }
+};
+
+const updateAdmin = async (req, res) => {
+  try {
+    const result = await AdminService.updateAdmin(req.params.id, req.body);
+    res.status(200).json(result);
+  } catch (error) {
+    const statusCode = error.message === 'Admin not found' ? 404 :
+      error.message.includes('already registered') ? 409 : 400;
+    res.status(statusCode).json({
+      success: false,
+      message: 'Failed to update admin',
+      error: error.message
+    });
+  }
+};
+
+const deleteAdmin = async (req, res) => {
+  try {
+    const result = await AdminService.deleteAdmin(req.params.id);
+    res.status(200).json(result);
+  } catch (error) {
+    const statusCode = error.message === 'Admin not found' ? 404 : 400;
+    res.status(statusCode).json({
+      success: false,
+      message: 'Failed to delete admin',
       error: error.message
     });
   }
@@ -243,6 +272,7 @@ export {
   approveAdminRequest,
   rejectAdminRequest,
   getAllAdmins,
+  updateAdmin,
+  deleteAdmin,
   getDashboardStats
 };
-

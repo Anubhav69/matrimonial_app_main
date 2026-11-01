@@ -84,17 +84,21 @@ class AdminService {
     const offset = (page - 1) * limit;
 
     const profileWhere = {};
+    let searchTerm;
     if (filters.status) {
       profileWhere.profile_status = filters.status;
     }
 
     const userWhere = { is_deleted: false, role: 'user' };
     if (filters.search) {
-      // Search by name, email, or phone
-      const searchTerm = `%${filters.search}%`;
+      searchTerm = `%${filters.search}%`;
       userWhere[Op.or] = [
         { email: { [Op.like]: searchTerm } },
         { phone: { [Op.like]: searchTerm } }
+      ];
+      profileWhere[Op.or] = [
+        { first_name: { [Op.like]: searchTerm } },
+        { last_name: { [Op.like]: searchTerm } }
       ];
     }
 
@@ -104,14 +108,21 @@ class AdminService {
       include: [
         {
           model: UserProfile,
-          where: Object.keys(profileWhere).length > 0 ? profileWhere : undefined,
+          where: Reflect.ownKeys(profileWhere).length > 0 ? profileWhere : undefined,
           required: true
         },
         {
+          model: CareerDetail,
+          required: false
+        },
+        {
+          model: UserEducation,
+          required: false
+        },
+        {
           model: UserPhoto,
-          where: { is_primary: true },
           required: false,
-          attributes: ['photo_url', 'is_primary']
+          attributes: ['id', 'photo_url', 'is_primary']
         }
       ],
       order: [['created_at', 'DESC']],
@@ -402,9 +413,17 @@ class AdminService {
   /**
    * Get all admins (Super Admin only)
    */
-  static async getAllAdmins() {
+  static async getAllAdmins(requesterRole, requesterId) {
+    const where = {
+      role: requesterRole === 'super_admin' ? ['admin', 'super_admin'] : 'admin',
+      is_deleted: false
+    };
+    if (requesterRole === 'admin') {
+      where.id = { [Op.ne]: requesterId };
+    }
+
     const admins = await User.findAll({
-      where: { role: 'admin', is_deleted: false },
+      where,
       attributes: { exclude: ['password_hash'] },
       order: [['created_at', 'DESC']]
     });
@@ -412,6 +431,70 @@ class AdminService {
     return {
       success: true,
       data: admins
+    };
+  }
+
+  static async updateAdmin(adminId, changes = {}) {
+    const admin = await User.findOne({
+      where: { id: adminId, role: 'admin', is_deleted: false }
+    });
+    if (!admin) throw new Error('Admin not found');
+
+    const allowedFields = ['email', 'phone', 'status'];
+    const providedFields = Object.keys(changes);
+    if (!providedFields.length || providedFields.some((field) => !allowedFields.includes(field))) {
+      throw new Error('Only email, phone, and status can be updated');
+    }
+    if (changes.status !== undefined && !['active', 'inactive'].includes(changes.status)) {
+      throw new Error('Status must be active or inactive');
+    }
+
+    const update = {};
+    for (const field of ['email', 'phone']) {
+      if (Object.prototype.hasOwnProperty.call(changes, field)) {
+        const value = changes[field] || null;
+        if (value) {
+          const existing = await User.findOne({
+            where: { [field]: value, id: { [Op.ne]: admin.id }, is_deleted: false }
+          });
+          if (existing) throw new Error(`${field === 'email' ? 'Email' : 'Phone'} already registered`);
+        }
+        update[field] = value;
+      }
+    }
+
+    const email = Object.prototype.hasOwnProperty.call(update, 'email') ? update.email : admin.email;
+    const phone = Object.prototype.hasOwnProperty.call(update, 'phone') ? update.phone : admin.phone;
+    if (!email && !phone) throw new Error('An admin must have an email or phone number');
+
+    if (changes.status !== undefined) update.status = changes.status;
+    await admin.update(update);
+
+    return {
+      success: true,
+      message: 'Admin updated successfully',
+      data: {
+        id: admin.id,
+        email: admin.email,
+        phone: admin.phone,
+        role: admin.role,
+        status: admin.status,
+        updated_at: admin.updated_at
+      }
+    };
+  }
+
+  static async deleteAdmin(adminId) {
+    const admin = await User.findOne({
+      where: { id: adminId, role: 'admin', is_deleted: false }
+    });
+    if (!admin) throw new Error('Admin not found');
+
+    await admin.update({ is_deleted: true, status: 'inactive' });
+    return {
+      success: true,
+      message: 'Admin deactivated successfully',
+      data: { id: admin.id, is_deleted: true, status: admin.status }
     };
   }
 
@@ -452,6 +535,9 @@ class AdminService {
     if (userRole === 'super_admin') {
       stats.total_admins = totalAdmins;
       stats.pending_admin_requests = pendingAdminRequests;
+      stats.total_super_admins = await User.count({
+        where: { role: 'super_admin', is_deleted: false }
+      });
     }
 
     return {
@@ -462,4 +548,3 @@ class AdminService {
 }
 
 export default AdminService;
-

@@ -12,6 +12,8 @@ import {
   approveAdminRequest,
   rejectAdminRequest,
   getAllAdmins,
+  updateAdmin,
+  deleteAdmin,
   getDashboardStats
 } from '../controllers/adminController.js';
 
@@ -106,9 +108,20 @@ router.patch('/admin-requests/:id/reject', authenticateToken, requireSuperAdmin,
 
 /**
  * GET /api/v1/admin/admins
- * List all admin users (Super Admin only)
+ * Admins see their peers; super admins see admins and super admins
  */
-router.get('/admins', authenticateToken, requireSuperAdmin, getAllAdmins);
+router.get('/admins', authenticateToken, requireAdmin, getAllAdmins);
+
+/**
+ * PATCH /api/v1/admin/admins/:id
+ * Update an admin's email, phone, or active/inactive status (Super Admin only)
+ */
+router.patch('/admins/:id', authenticateToken, requireSuperAdmin, updateAdmin);
+
+/**
+ * DELETE /api/v1/admin/admins/:id
+ * Soft-delete an admin account (Super Admin only)
+ */
+router.delete('/admins/:id', authenticateToken, requireSuperAdmin, deleteAdmin);
 
 export default router;
-
