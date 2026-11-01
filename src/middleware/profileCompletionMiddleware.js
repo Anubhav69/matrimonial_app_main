@@ -8,6 +8,7 @@ const requiredFields = [
   'height_cm',
   'marital_status',
   'religion',
+  'gotra',
   'country',
   'state',
   'city'

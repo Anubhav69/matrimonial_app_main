@@ -202,6 +202,9 @@ export const validateProfileData = (profileData) => {
     bio
   } = profileData;
 
+  if ('gotra' in profileData && (!profileData.gotra || !/^[A-Za-z\s.'-]{2,100}$/.test(profileData.gotra.trim()))) throw new Error('Gotra is required and must contain 2 to 100 letters');
+  if (profileData.birth_time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(profileData.birth_time)) throw new Error('Birth time must use HH:mm format');
+  if (profileData.birth_place && (typeof profileData.birth_place !== 'string' || profileData.birth_place.length > 100)) throw new Error('Birth place cannot exceed 100 characters');
   // Validate each field
   if (first_name) validateName(first_name, 'First name');
   if (last_name) validateName(last_name, 'Last name');
