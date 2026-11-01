@@ -17,6 +17,26 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
+const dashboardOrigins = (process.env.ADMIN_DASHBOARD_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use((req, res, next) => {
+  const requestOrigin = req.headers.origin;
+  if (requestOrigin && dashboardOrigins.includes(requestOrigin)) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  }
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(requestOrigin && !dashboardOrigins.includes(requestOrigin) ? 403 : 204);
+  }
+  next();
+});
+
 app.use(express.json());
 app.use(logRequest);
 app.use('/uploads', express.static('uploads'));
