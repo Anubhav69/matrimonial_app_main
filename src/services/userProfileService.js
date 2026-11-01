@@ -14,6 +14,7 @@ class UserProfileService {
     const { career_details = [], user_education = [], ...profileFields } = profileData;
 
     validateProfileData(profileFields);
+    if (!profileFields.gotra?.trim()) throw new Error('Gotra is required');
     validateCareerDetails(career_details);
     validateUserEducation(user_education);
 
