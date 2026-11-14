@@ -281,7 +281,7 @@ All endpoints in this section require `Authorization: Bearer <token>` and approp
 ### 7.4 Filter & Search All Profiles
 - **Endpoint**: `GET /api/v1/admin/profiles`
 - **Access**: `admin`, `super_admin`
-- **Query Params**: `status` (`pending`|`published`|`rejected`), `search` (name, email, or phone), `accountStatus` (`active`|`deleted`|`all`, defaults to `active`), `page`, `limit`
+- **Query Params**: `status` (`pending`|`published`|`rejected`), `search` (name, email, or phone), `accountStatus` (`active`|`deactivated`|`deleted`|`all`, defaults to `active`), `page`, `limit`
 
 ---
 
@@ -293,28 +293,36 @@ All endpoints in this section require `Authorization: Bearer <token>` and approp
 
 ---
 
-### 7.6 Deactivate User (Soft Delete)
+### 7.6 Activate or Deactivate User
+- **Endpoint**: `PATCH /api/v1/admin/profiles/:userId/status`
+- **Access**: `admin`, `super_admin`
+- **Description**: Sets the account status to `inactive` (deactivated) or `active`. Deactivated accounts remain available under the `deactivated` account-status filter and cannot authenticate until activated.
+- **Request Body**: `{ "status": "active" | "inactive" }`
+
+---
+
+### 7.7 Delete User (Soft Delete)
 - **Endpoint**: `DELETE /api/v1/admin/profiles/:userId`
 - **Access**: `admin`, `super_admin`
 - **Description**: Sets `is_deleted = true`; the user's records are retained, current sessions are denied on subsequent requests, and the account can be listed with `accountStatus=deleted`.
 
 ---
 
-### 7.7 Restore User
+### 7.8 Restore User
 - **Endpoint**: `PATCH /api/v1/admin/profiles/:userId/restore`
 - **Access**: `admin`, `super_admin`
 - **Description**: Restores a soft-deleted account without changing its existing account status.
 
 ---
 
-### 7.8 Permanently Delete User
+### 7.9 Permanently Delete User
 - **Endpoint**: `DELETE /api/v1/admin/profiles/:userId/permanent`
 - **Access**: `admin`, `super_admin`
 - **Description**: Permanently removes the user and associated profile, career, education, photo, interaction, and message records. This action cannot be undone.
 
 ---
 
-### 7.9 Approve Profile
+### 7.10 Approve Profile
 - **Endpoint**: `PATCH /api/v1/admin/profiles/:userId/approve`
 - **Access**: `admin`, `super_admin`
 - **Description**: Changes `profile_status` to `'published'` and marks `User.is_verified = true`. The user can now be viewed by others in search.
@@ -334,7 +342,7 @@ All endpoints in this section require `Authorization: Bearer <token>` and approp
 
 ---
 
-### 7.10 Reject Profile
+### 7.11 Reject Profile
 - **Endpoint**: `PATCH /api/v1/admin/profiles/:userId/reject`
 - **Access**: `admin`, `super_admin`
 - **Request Body**:
@@ -346,7 +354,7 @@ All endpoints in this section require `Authorization: Bearer <token>` and approp
 
 ---
 
-### 7.11 Create Admin
+### 7.12 Create Admin
 - **Endpoint**: `POST /api/v1/admin/create-admin`
 - **Access**: `admin`, `super_admin`
 - **Behavior**:
@@ -377,21 +385,21 @@ All endpoints in this section require `Authorization: Bearer <token>` and approp
 
 ---
 
-### 7.8 List Pending Admin Requests
+### 7.13 List Pending Admin Requests
 - **Endpoint**: `GET /api/v1/admin/admin-requests/pending?page=1&limit=20`
 - **Access**: `super_admin` only
 - **Description**: Returns all requests initiated by Admins awaiting Super Admin review.
 
 ---
 
-### 7.9 Approve Admin Request
+### 7.14 Approve Admin Request
 - **Endpoint**: `PATCH /api/v1/admin/admin-requests/:id/approve`
 - **Access**: `super_admin` only
 - **Description**: Approves request, sets status to `'approved'`, and automatically provisions the new `User` record with `role = 'admin'`.
 
 ---
 
-### 7.10 Reject Admin Request
+### 7.15 Reject Admin Request
 - **Endpoint**: `PATCH /api/v1/admin/admin-requests/:id/reject`
 - **Access**: `super_admin` only
 - **Request Body**:
@@ -403,17 +411,17 @@ All endpoints in this section require `Authorization: Bearer <token>` and approp
 
 ---
 
-### 7.11 List All Admins
+### 7.16 List All Admins
 - **Endpoint**: `GET /api/v1/admin/admins`
 - **Access**: `admin`, `super_admin`
 - **Description**: Admins see peer admins only (not their own account or super admins). Super admins see all active admins and super admins.
 
-### 7.12 Update an Admin
+### 7.17 Update an Admin
 - **Endpoint**: `PATCH /api/v1/admin/admins/:id`
 - **Access**: `super_admin` only
 - **Description**: Updates an active regular admin's email, phone, or status (`active`/`inactive`). Super-admin accounts cannot be changed through this endpoint.
 
-### 7.13 Deactivate an Admin
+### 7.18 Deactivate an Admin
 - **Endpoint**: `DELETE /api/v1/admin/admins/:id`
 - **Access**: `super_admin` only
 - **Description**: Soft-deletes a regular admin and sets its status to `inactive`. The account history remains in the database; super-admin accounts cannot be deactivated through this endpoint.

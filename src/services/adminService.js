@@ -109,13 +109,19 @@ class AdminService {
     }
 
     const accountStatus = filters.accountStatus || 'active';
-    if (!['active', 'deleted', 'all'].includes(accountStatus)) {
+    if (!['active', 'deactivated', 'deleted', 'all'].includes(accountStatus)) {
       throw new Error('Invalid account status filter');
     }
 
     const userWhere = { role: 'user' };
-    if (accountStatus !== 'all') {
-      userWhere.is_deleted = accountStatus === 'deleted';
+    if (accountStatus === 'deleted') {
+      userWhere.is_deleted = true;
+    } else if (accountStatus === 'deactivated') {
+      userWhere.is_deleted = false;
+      userWhere.status = 'inactive';
+    } else if (accountStatus === 'active') {
+      userWhere.is_deleted = false;
+      userWhere.status = 'active';
     }
     if (filters.search) {
       searchTerm = `%${filters.search}%`;
@@ -306,7 +312,7 @@ class AdminService {
     await user.update({ is_deleted: true });
     return {
       success: true,
-      message: 'User deactivated successfully',
+      message: 'User deleted successfully',
       data: { id: user.id, is_deleted: true, status: user.status }
     };
   }
@@ -320,6 +326,22 @@ class AdminService {
       success: true,
       message: 'User restored successfully',
       data: { id: user.id, is_deleted: false, status: user.status }
+    };
+  }
+
+  static async setUserAccountStatus(userId, status) {
+    if (!['active', 'inactive'].includes(status)) {
+      throw new Error('Invalid account status');
+    }
+
+    const user = await User.findOne({ where: { id: userId, role: 'user', is_deleted: false } });
+    if (!user) throw new Error('User not found');
+
+    await user.update({ status });
+    return {
+      success: true,
+      message: status === 'active' ? 'User account activated successfully' : 'User account deactivated successfully',
+      data: { id: user.id, is_deleted: user.is_deleted, status: user.status }
     };
   }
 
