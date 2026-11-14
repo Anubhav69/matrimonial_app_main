@@ -119,29 +119,41 @@ class AuthService {
     const user = await User.findOne({ where: { ...where, is_deleted: false } });
     // Do not reveal whether an account exists.
     if (!user || !user.email) return { success: true, message: 'If the account exists, a reset email has been sent' };
-    const token = crypto.randomBytes(32).toString('hex');
-    await user.update({ reset_password_token: token, reset_password_expires: new Date(Date.now() + 30 * 60 * 1000) });
+    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const otpHash = crypto.createHash('sha256').update(otp).digest('hex');
+    await user.update({ reset_password_otp_hash: otpHash, reset_password_otp_expires: new Date(Date.now() + 10 * 60 * 1000), reset_password_token: null, reset_password_expires: null });
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT || 587),
       secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true',
       auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined
     });
-    const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
     await transporter.sendMail({
       from: process.env.SMTP_FROM || `${process.env.SMTP_FROM_NAME || 'Soul Match'} <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
       to: user.email,
-      subject: 'Reset your SoulMatch password',
-      text: `Use this link within 30 minutes to reset your password: ${resetUrl}`
+      subject: 'Your SoulMatch password reset OTP',
+      text: `Your SoulMatch password reset OTP is ${otp}. It expires in 10 minutes.`
     });
     return { success: true, message: 'If the account exists, a reset email has been sent' };
   }
 
-  static async resetPassword(token, password) {
+  static async verifyPasswordResetOtp(identifier, otp) {
+    const where = identifier.includes('@') ? { email: identifier } : { phone: identifier };
+    const user = await User.findOne({ where: { ...where, is_deleted: false } });
+    if (!user || !user.reset_password_otp_hash || !user.reset_password_otp_expires || user.reset_password_otp_expires < new Date()) throw new Error('OTP is invalid or expired');
+    const hash = crypto.createHash('sha256').update(String(otp)).digest('hex');
+    if (hash !== user.reset_password_otp_hash) throw new Error('Invalid OTP');
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    await user.update({ reset_password_token: resetToken, reset_password_expires: new Date(Date.now() + 10 * 60 * 1000), reset_password_otp_hash: null, reset_password_otp_expires: null });
+    return { success: true, resetToken };
+  }
+
+  static async resetPassword(token, password, confirmPassword) {
     validatePassword(password);
+    if (password !== confirmPassword) throw new Error('Passwords do not match');
     const user = await User.findOne({ where: { reset_password_token: token, is_deleted: false } });
     if (!user || !user.reset_password_expires || user.reset_password_expires < new Date()) throw new Error('Reset link is invalid or expired');
-    await user.update({ password_hash: await bcryptjs.hash(password, 10), reset_password_token: null, reset_password_expires: null });
+    await user.update({ password_hash: await bcryptjs.hash(password, 10), reset_password_token: null, reset_password_expires: null, reset_password_otp_hash: null, reset_password_otp_expires: null });
     return { success: true, message: 'Password reset successfully' };
   }
 

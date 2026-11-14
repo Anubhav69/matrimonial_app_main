@@ -72,10 +72,18 @@ const forgotPassword = async (req, res) => {
 
 const resetPassword = async (req, res) => {
   try {
-    res.status(200).json(await AuthService.resetPassword(String(req.body?.token || ''), String(req.body?.password || '')));
+    res.status(200).json(await AuthService.resetPassword(String(req.body?.token || ''), String(req.body?.password || ''), String(req.body?.confirmPassword || '')));
   } catch (error) {
     res.status(400).json({ success: false, error: error.message });
   }
 };
 
-export { signUp, login, forgotPassword, resetPassword };
+const verifyPasswordResetOtp = async (req, res) => {
+  try {
+    res.status(200).json(await AuthService.verifyPasswordResetOtp(String(req.body?.emailOrPhone || ''), String(req.body?.otp || '')));
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+export { signUp, login, forgotPassword, verifyPasswordResetOtp, resetPassword };
