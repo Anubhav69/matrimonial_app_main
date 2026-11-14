@@ -23,6 +23,10 @@ npm start
 
 The application will be available at `http://localhost:3000`
 
+## Deployment updates
+
+For repeat API deployments from Windows to EC2 over SSH, see [DEPLOYMENT_UPDATES.md](./DEPLOYMENT_UPDATES.md).
+
 ## Project Structure
 
 ```

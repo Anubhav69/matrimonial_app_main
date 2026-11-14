@@ -5,6 +5,10 @@ import {
   getPendingProfilesCount,
   getPendingProfiles,
   getAllProfiles,
+  updateUser,
+  softDeleteUser,
+  restoreUser,
+  hardDeleteUser,
   approveProfile,
   rejectProfile,
   createAdmin,
@@ -13,6 +17,7 @@ import {
   rejectAdminRequest,
   getAllAdmins,
   updateAdmin,
+  updateAdminProfile,
   deleteAdmin,
   getDashboardStats
 } from '../controllers/adminController.js';
@@ -59,6 +64,30 @@ router.get('/profiles/pending', authenticateToken, requireAdmin, getPendingProfi
  * Query params: status (pending|published|rejected), search, page, limit
  */
 router.get('/profiles', authenticateToken, requireAdmin, getAllProfiles);
+
+/**
+ * PATCH /api/v1/admin/profiles/:userId
+ * Update a user's contact and profile details
+ */
+router.patch('/profiles/:userId', authenticateToken, requireAdmin, updateUser);
+
+/**
+ * PATCH /api/v1/admin/profiles/:userId/restore
+ * Restore a soft-deleted user account
+ */
+router.patch('/profiles/:userId/restore', authenticateToken, requireAdmin, restoreUser);
+
+/**
+ * DELETE /api/v1/admin/profiles/:userId
+ * Soft-delete a user account
+ */
+router.delete('/profiles/:userId', authenticateToken, requireAdmin, softDeleteUser);
+
+/**
+ * DELETE /api/v1/admin/profiles/:userId/permanent
+ * Permanently delete a user account and associated records
+ */
+router.delete('/profiles/:userId/permanent', authenticateToken, requireAdmin, hardDeleteUser);
 
 /**
  * PATCH /api/v1/admin/profiles/:userId/approve
@@ -111,6 +140,12 @@ router.patch('/admin-requests/:id/reject', authenticateToken, requireSuperAdmin,
  * Admins see their peers; super admins see admins and super admins
  */
 router.get('/admins', authenticateToken, requireAdmin, getAllAdmins);
+
+/**
+ * PATCH /api/v1/admin/profile
+ * Update the authenticated admin's own email or phone
+ */
+router.patch('/profile', authenticateToken, requireAdmin, updateAdminProfile);
 
 /**
  * PATCH /api/v1/admin/admins/:id

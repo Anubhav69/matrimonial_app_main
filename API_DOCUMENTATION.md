@@ -281,11 +281,40 @@ All endpoints in this section require `Authorization: Bearer <token>` and approp
 ### 7.4 Filter & Search All Profiles
 - **Endpoint**: `GET /api/v1/admin/profiles`
 - **Access**: `admin`, `super_admin`
-- **Query Params**: `status` (`pending`|`published`|`rejected`), `search` (name, email, or phone), `page`, `limit`
+- **Query Params**: `status` (`pending`|`published`|`rejected`), `search` (name, email, or phone), `accountStatus` (`active`|`deleted`|`all`, defaults to `active`), `page`, `limit`
 
 ---
 
-### 7.5 Approve Profile
+### 7.5 Update User Details
+- **Endpoint**: `PATCH /api/v1/admin/profiles/:userId`
+- **Access**: `admin`, `super_admin`
+- **Description**: Updates the user's email/phone and submitted profile details. Only supplied fields are changed.
+- **Request Body**: Any of `email`, `phone`, `first_name`, `last_name`, `gender`, `date_of_birth`, `birth_time`, `birth_place`, `gotra`, `height_cm`, `marital_status`, `religion`, `caste`, `mother_tongue`, `country`, `state`, `city`, and `bio`.
+
+---
+
+### 7.6 Deactivate User (Soft Delete)
+- **Endpoint**: `DELETE /api/v1/admin/profiles/:userId`
+- **Access**: `admin`, `super_admin`
+- **Description**: Sets `is_deleted = true`; the user's records are retained, current sessions are denied on subsequent requests, and the account can be listed with `accountStatus=deleted`.
+
+---
+
+### 7.7 Restore User
+- **Endpoint**: `PATCH /api/v1/admin/profiles/:userId/restore`
+- **Access**: `admin`, `super_admin`
+- **Description**: Restores a soft-deleted account without changing its existing account status.
+
+---
+
+### 7.8 Permanently Delete User
+- **Endpoint**: `DELETE /api/v1/admin/profiles/:userId/permanent`
+- **Access**: `admin`, `super_admin`
+- **Description**: Permanently removes the user and associated profile, career, education, photo, interaction, and message records. This action cannot be undone.
+
+---
+
+### 7.9 Approve Profile
 - **Endpoint**: `PATCH /api/v1/admin/profiles/:userId/approve`
 - **Access**: `admin`, `super_admin`
 - **Description**: Changes `profile_status` to `'published'` and marks `User.is_verified = true`. The user can now be viewed by others in search.
@@ -305,7 +334,7 @@ All endpoints in this section require `Authorization: Bearer <token>` and approp
 
 ---
 
-### 7.6 Reject Profile
+### 7.10 Reject Profile
 - **Endpoint**: `PATCH /api/v1/admin/profiles/:userId/reject`
 - **Access**: `admin`, `super_admin`
 - **Request Body**:
@@ -317,7 +346,7 @@ All endpoints in this section require `Authorization: Bearer <token>` and approp
 
 ---
 
-### 7.7 Create Admin
+### 7.11 Create Admin
 - **Endpoint**: `POST /api/v1/admin/create-admin`
 - **Access**: `admin`, `super_admin`
 - **Behavior**:
@@ -330,6 +359,18 @@ All endpoints in this section require `Authorization: Bearer <token>` and approp
   "email": "newadmin@example.com",
   "phone": "9876500000",
   "password": "SecureAdminPassword123"
+}
+```
+
+### Update Own Admin Profile
+- **Endpoint**: `PATCH /api/v1/admin/profile`
+- **Access**: `admin`, `super_admin`
+- **Description**: Updates the authenticated administrator's own email and/or phone number.
+- **Request Body**:
+```json
+{
+  "email": "admin@example.com",
+  "phone": "9876500000"
 }
 ```
 

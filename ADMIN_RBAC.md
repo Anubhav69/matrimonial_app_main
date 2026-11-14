@@ -167,11 +167,16 @@ Tracks admin user creation requests made by existing Admins awaiting Super Admin
 | Filter/Search Profiles (`/api/v1/admin/profiles`) | ✅ | ✅ | ❌ |
 | Approve Profile (`/api/v1/admin/profiles/:userId/approve`) | ✅ | ✅ | ❌ |
 | Reject Profile (`/api/v1/admin/profiles/:userId/reject`) | ✅ | ✅ | ❌ |
+| Update User (`PATCH /api/v1/admin/profiles/:userId`) | ✅ | ✅ | ❌ |
+| Soft Delete User (`DELETE /api/v1/admin/profiles/:userId`) | ✅ | ✅ | ❌ |
+| Restore User (`PATCH /api/v1/admin/profiles/:userId/restore`) | ✅ | ✅ | ❌ |
+| Permanently Delete User (`DELETE /api/v1/admin/profiles/:userId/permanent`) | ✅ | ✅ | ❌ |
 | Create Admin (`/api/v1/admin/create-admin`) | ✅ (Direct) | ✅ (Creates request) | ❌ |
 | List Pending Admin Requests (`/api/v1/admin/admin-requests/pending`) | ✅ | ❌ | ❌ |
 | Approve Admin Request (`/api/v1/admin/admin-requests/:id/approve`) | ✅ | ❌ | ❌ |
 | Reject Admin Request (`/api/v1/admin/admin-requests/:id/reject`) | ✅ | ❌ | ❌ |
 | List Admins (`/api/v1/admin/admins`) | ✅ (Admins and Super Admins) | ✅ (Peer Admins only) | ❌ |
+| Update Own Admin Profile (`PATCH /api/v1/admin/profile`) | ✅ | ✅ | ❌ |
 | Update Admin (`PATCH /api/v1/admin/admins/:id`) | ✅ (Regular Admin only) | ❌ | ❌ |
 | Deactivate Admin (`DELETE /api/v1/admin/admins/:id`) | ✅ (Regular Admin only) | ❌ | ❌ |
 | Browse/Search Profiles (`/api/v1/users/search`) | ❌ (Client app) | ❌ (Client app) | ✅ (Only published) |

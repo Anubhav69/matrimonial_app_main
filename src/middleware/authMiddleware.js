@@ -6,6 +6,7 @@
  */
 
 import AuthService from '../services/authService.js';
+import { User } from '../models/index.js';
 
 /**
  * Verify JWT Token Middleware
@@ -13,7 +14,7 @@ import AuthService from '../services/authService.js';
  * Extracts and validates JWT token from Authorization header
  * If valid, adds user data to req.user for use in route handlers
  */
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   // Extract token from Authorization header
   // Expected format: "Bearer <token>"
   const authHeader = req.headers['authorization'];
@@ -29,23 +30,40 @@ const authenticateToken = (req, res, next) => {
   }
 
   // Verify the token
+  let decoded;
   try {
-    // Use AuthService to verify token and get decoded payload
-    const decoded = AuthService.verifyToken(token);
-    
-    // Attach decoded user data to request object
-    req.user = decoded;
-    
-    // Continue to next middleware/route handler
-    next();
+    decoded = AuthService.verifyToken(token);
   } catch (error) {
     // Token is invalid or expired
-    res.status(403).json({
+    return res.status(403).json({
       success: false,
       message: 'Invalid or expired token',
       error: error.message
     });
   }
+
+  let user;
+  try {
+    user = await User.findByPk(decoded.id, {
+      attributes: ['id', 'role', 'is_deleted', 'status']
+    });
+  } catch (error) {
+    console.error('Authentication lookup failed:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Authentication could not be verified'
+    });
+  }
+
+  if (!user || user.is_deleted || user.status !== 'active') {
+    return res.status(401).json({
+      success: false,
+      message: 'User account is inactive or deleted'
+    });
+  }
+
+  req.user = { ...decoded, role: user.role };
+  next();
 };
 
 export { authenticateToken };

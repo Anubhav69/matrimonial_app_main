@@ -1,6 +1,8 @@
 import bcryptjs from 'bcryptjs';
+import { unlink } from 'node:fs/promises';
+import path from 'node:path';
 import { Op } from 'sequelize';
-import { User, UserProfile, CareerDetail, UserEducation, UserPhoto } from '../models/index.js';
+import sequelize, { User, UserProfile, CareerDetail, UserEducation, UserPhoto, UserInteraction, Message } from '../models/index.js';
 import AdminRequest from '../models/AdminRequest.js';
 
 /**
@@ -89,7 +91,15 @@ class AdminService {
       profileWhere.profile_status = filters.status;
     }
 
-    const userWhere = { is_deleted: false, role: 'user' };
+    const accountStatus = filters.accountStatus || 'active';
+    if (!['active', 'deleted', 'all'].includes(accountStatus)) {
+      throw new Error('Invalid account status filter');
+    }
+
+    const userWhere = { role: 'user' };
+    if (accountStatus !== 'all') {
+      userWhere.is_deleted = accountStatus === 'deleted';
+    }
     if (filters.search) {
       searchTerm = `%${filters.search}%`;
       userWhere[Op.or] = [
@@ -140,6 +150,206 @@ class AdminService {
         limit,
         total_pages: Math.ceil(count / limit)
       }
+    };
+  }
+
+  static async updateUser(userId, changes) {
+    const user = await User.findOne({ where: { id: userId, role: 'user' } });
+    if (!user) throw new Error('User not found');
+    if (!changes || typeof changes !== 'object' || Array.isArray(changes)) {
+      throw new Error('Invalid user details');
+    }
+
+    const allowedFields = new Set([
+      'email', 'phone', 'first_name', 'last_name', 'gender', 'date_of_birth',
+      'birth_time', 'birth_place', 'gotra', 'height_cm', 'marital_status',
+      'religion', 'caste', 'mother_tongue', 'country', 'state', 'city', 'bio'
+    ]);
+    if (!Object.keys(changes).length) throw new Error('No user details were provided');
+    if (Object.keys(changes).some((field) => !allowedFields.has(field))) {
+      throw new Error('Invalid user detail field');
+    }
+
+    const userUpdates = {};
+    for (const field of ['email', 'phone']) {
+      if (!Object.prototype.hasOwnProperty.call(changes, field)) continue;
+      const rawValue = changes[field];
+      if (rawValue !== null && typeof rawValue !== 'string') {
+        throw new Error(`Invalid ${field}`);
+      }
+
+      const trimmedValue = rawValue?.trim() || null;
+      const value = field === 'email' && trimmedValue ? trimmedValue.toLowerCase() : trimmedValue;
+      if (value && value.length > (field === 'email' ? 255 : 20)) {
+        throw new Error(`Invalid ${field}`);
+      }
+      if (field === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        throw new Error('Invalid email');
+      }
+      if (value) {
+        const existing = await User.findOne({
+          where: { [field]: value, id: { [Op.ne]: user.id } }
+        });
+        if (existing) throw new Error(`${field === 'email' ? 'Email' : 'Phone'} already registered`);
+      }
+      userUpdates[field] = value;
+    }
+
+    const email = Object.prototype.hasOwnProperty.call(userUpdates, 'email') ? userUpdates.email : user.email;
+    const phone = Object.prototype.hasOwnProperty.call(userUpdates, 'phone') ? userUpdates.phone : user.phone;
+    if (!email && !phone) throw new Error('A user must have an email or phone number');
+
+    const profile = await UserProfile.findOne({ where: { user_id: user.id } });
+    if (!profile) throw new Error('Profile not found');
+
+    const profileUpdates = {};
+    const textFieldLengths = {
+      first_name: 100,
+      last_name: 100,
+      gender: 10,
+      date_of_birth: 10,
+      birth_time: 5,
+      birth_place: 100,
+      gotra: 100,
+      marital_status: 20,
+      religion: 100,
+      caste: 100,
+      mother_tongue: 100,
+      country: 100,
+      state: 100,
+      city: 100
+    };
+    for (const [field, maxLength] of Object.entries(textFieldLengths)) {
+      if (!Object.prototype.hasOwnProperty.call(changes, field)) continue;
+      const value = changes[field];
+      if (value !== null && typeof value !== 'string') throw new Error(`Invalid ${field}`);
+      const trimmedValue = value?.trim() || null;
+      if (trimmedValue && trimmedValue.length > maxLength) throw new Error(`Invalid ${field}`);
+      profileUpdates[field] = trimmedValue;
+    }
+    if (Object.prototype.hasOwnProperty.call(changes, 'bio')) {
+      const value = changes.bio;
+      if (value !== null && typeof value !== 'string') throw new Error('Invalid bio');
+      if (value && value.length > 65535) throw new Error('Invalid bio');
+      profileUpdates.bio = value?.trim() || null;
+    }
+
+    const enumValues = {
+      gender: ['male', 'female', 'other'],
+      marital_status: ['unmarried', 'divorced', 'widowed']
+    };
+    for (const [field, values] of Object.entries(enumValues)) {
+      if (profileUpdates[field] && !values.includes(profileUpdates[field])) {
+        throw new Error(`Invalid ${field}`);
+      }
+    }
+    if (profileUpdates.date_of_birth && !/^\d{4}-\d{2}-\d{2}$/.test(profileUpdates.date_of_birth)) {
+      throw new Error('Invalid date_of_birth');
+    }
+    if (profileUpdates.date_of_birth) {
+      const parsedDate = new Date(`${profileUpdates.date_of_birth}T00:00:00.000Z`);
+      if (Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== profileUpdates.date_of_birth) {
+        throw new Error('Invalid date_of_birth');
+      }
+    }
+    if (profileUpdates.birth_time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(profileUpdates.birth_time)) {
+      throw new Error('Invalid birth_time');
+    }
+    if (Object.prototype.hasOwnProperty.call(changes, 'height_cm')) {
+      const value = changes.height_cm;
+      const height = value === '' || value === null ? null : Number(value);
+      if (height !== null && (!Number.isInteger(height) || height < 1 || height > 300)) {
+        throw new Error('Invalid height_cm');
+      }
+      profileUpdates.height_cm = height;
+    }
+
+    await sequelize.transaction(async (transaction) => {
+      if (Object.keys(userUpdates).length) await user.update(userUpdates, { transaction });
+      if (Object.keys(profileUpdates).length) await profile.update(profileUpdates, { transaction });
+    });
+
+    return {
+      success: true,
+      message: 'User details updated successfully',
+      data: {
+        id: user.id,
+        email: user.email,
+        phone: user.phone,
+        is_deleted: user.is_deleted,
+        profile: profile.toJSON()
+      }
+    };
+  }
+
+  static async softDeleteUser(userId) {
+    const user = await User.findOne({ where: { id: userId, role: 'user', is_deleted: false } });
+    if (!user) throw new Error('Active user not found');
+
+    await user.update({ is_deleted: true });
+    return {
+      success: true,
+      message: 'User deactivated successfully',
+      data: { id: user.id, is_deleted: true, status: user.status }
+    };
+  }
+
+  static async restoreUser(userId) {
+    const user = await User.findOne({ where: { id: userId, role: 'user', is_deleted: true } });
+    if (!user) throw new Error('Deleted user not found');
+
+    await user.update({ is_deleted: false });
+    return {
+      success: true,
+      message: 'User restored successfully',
+      data: { id: user.id, is_deleted: false, status: user.status }
+    };
+  }
+
+  static async hardDeleteUser(userId) {
+    const user = await User.findOne({ where: { id: userId, role: 'user' } });
+    if (!user) throw new Error('User not found');
+    const [profile, photos] = await Promise.all([
+      UserProfile.findOne({ where: { user_id: user.id }, attributes: ['profile_photo'] }),
+      UserPhoto.findAll({ where: { user_id: user.id }, attributes: ['photo_url'] })
+    ]);
+
+    await sequelize.transaction(async (transaction) => {
+      await UserInteraction.destroy({
+        where: { [Op.or]: [{ sender_id: user.id }, { receiver_id: user.id }] },
+        transaction
+      });
+      await Message.destroy({
+        where: { [Op.or]: [{ sender_id: user.id }, { receiver_id: user.id }] },
+        transaction
+      });
+      await UserProfile.destroy({ where: { user_id: user.id }, transaction });
+      await CareerDetail.destroy({ where: { user_id: user.id }, transaction });
+      await UserEducation.destroy({ where: { user_id: user.id }, transaction });
+      await UserPhoto.destroy({ where: { user_id: user.id }, transaction });
+      await user.destroy({ transaction });
+    });
+
+    const uploadDirectory = path.resolve(process.cwd(), 'uploads');
+    const filePaths = new Set([profile?.profile_photo, ...photos.map((photo) => photo.photo_url)]);
+    for (const storedPath of filePaths) {
+      if (typeof storedPath !== 'string' || !storedPath) continue;
+      const filePath = path.resolve(storedPath);
+      const relativePath = path.relative(uploadDirectory, filePath);
+      if (!relativePath || relativePath === '..' || relativePath.startsWith(`..${path.sep}`) || path.isAbsolute(relativePath)) continue;
+      try {
+        await unlink(filePath);
+      } catch (error) {
+        if (error.code !== 'ENOENT') {
+          throw new Error(`User was deleted, but an uploaded photo could not be removed: ${error.message}`);
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: 'User and associated records permanently deleted',
+      data: { id: user.id }
     };
   }
 
@@ -480,6 +690,54 @@ class AdminService {
         role: admin.role,
         status: admin.status,
         updated_at: admin.updated_at
+      }
+    };
+  }
+
+  static async updateAdminProfile(adminId, changes = {}) {
+    const admin = await User.findOne({
+      where: { id: adminId, role: { [Op.in]: ['admin', 'super_admin'] }, is_deleted: false }
+    });
+    if (!admin) throw new Error('Admin not found');
+
+    const fields = ['email', 'phone'];
+    const providedFields = Object.keys(changes);
+    if (!providedFields.length || providedFields.some((field) => !fields.includes(field))) {
+      throw new Error('Only email and phone can be updated');
+    }
+
+    const update = {};
+    for (const field of fields) {
+      if (!Object.prototype.hasOwnProperty.call(changes, field)) continue;
+      const rawValue = changes[field];
+      if (rawValue !== null && typeof rawValue !== 'string') throw new Error(`Invalid ${field}`);
+      const trimmedValue = rawValue?.trim() || null;
+      const value = field === 'email' && trimmedValue ? trimmedValue.toLowerCase() : trimmedValue;
+      if (value && value.length > (field === 'email' ? 255 : 20)) throw new Error(`Invalid ${field}`);
+      if (field === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+        throw new Error('Invalid email');
+      }
+      if (value) {
+        const existing = await User.findOne({ where: { [field]: value, id: { [Op.ne]: admin.id } } });
+        if (existing) throw new Error(`${field === 'email' ? 'Email' : 'Phone'} already registered`);
+      }
+      update[field] = value;
+    }
+
+    const email = Object.prototype.hasOwnProperty.call(update, 'email') ? update.email : admin.email;
+    const phone = Object.prototype.hasOwnProperty.call(update, 'phone') ? update.phone : admin.phone;
+    if (!email && !phone) throw new Error('An admin must have an email or phone number');
+
+    await admin.update(update);
+    return {
+      success: true,
+      message: 'Your profile was updated successfully',
+      data: {
+        id: admin.id,
+        email: admin.email,
+        phone: admin.phone,
+        role: admin.role,
+        status: admin.status
       }
     };
   }

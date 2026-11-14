@@ -49,16 +49,71 @@ const getPendingProfiles = async (req, res) => {
  */
 const getAllProfiles = async (req, res) => {
   try {
-    const { status, search, page, limit } = req.query;
+    const { status, search, accountStatus, page, limit } = req.query;
     const result = await AdminService.getAllProfiles(
-      { status, search },
+      { status, search, accountStatus },
       { page, limit }
     );
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({
+    res.status(error.message === 'Invalid account status filter' ? 400 : 500).json({
       success: false,
       message: 'Failed to get profiles',
+      error: error.message
+    });
+  }
+};
+
+const updateUser = async (req, res) => {
+  try {
+    const result = await AdminService.updateUser(req.params.userId, req.body);
+    res.status(200).json(result);
+  } catch (error) {
+    const statusCode = error.message === 'User not found' || error.message === 'Profile not found' ? 404 :
+      error.message.includes('already registered') ? 409 :
+        error.message.startsWith('Invalid ') || error.message.includes('must have') || error.message.includes('No user details') ? 400 : 500;
+    res.status(statusCode).json({
+      success: false,
+      message: 'Failed to update user',
+      error: error.message
+    });
+  }
+};
+
+const softDeleteUser = async (req, res) => {
+  try {
+    const result = await AdminService.softDeleteUser(req.params.userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(error.message === 'Active user not found' ? 404 : 500).json({
+      success: false,
+      message: 'Failed to deactivate user',
+      error: error.message
+    });
+  }
+};
+
+const restoreUser = async (req, res) => {
+  try {
+    const result = await AdminService.restoreUser(req.params.userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(error.message === 'Deleted user not found' ? 404 : 500).json({
+      success: false,
+      message: 'Failed to restore user',
+      error: error.message
+    });
+  }
+};
+
+const hardDeleteUser = async (req, res) => {
+  try {
+    const result = await AdminService.hardDeleteUser(req.params.userId);
+    res.status(200).json(result);
+  } catch (error) {
+    res.status(error.message === 'User not found' ? 404 : 500).json({
+      success: false,
+      message: 'Failed to permanently delete user',
       error: error.message
     });
   }
@@ -226,6 +281,22 @@ const updateAdmin = async (req, res) => {
   }
 };
 
+const updateAdminProfile = async (req, res) => {
+  try {
+    const result = await AdminService.updateAdminProfile(req.user.id, req.body);
+    res.status(200).json(result);
+  } catch (error) {
+    const statusCode = error.message === 'Admin not found' ? 404 :
+      error.message.includes('already registered') ? 409 :
+        error.message.startsWith('Invalid ') || error.message.includes('must have') || error.message.includes('Only email') ? 400 : 500;
+    res.status(statusCode).json({
+      success: false,
+      message: 'Failed to update your profile',
+      error: error.message
+    });
+  }
+};
+
 const deleteAdmin = async (req, res) => {
   try {
     const result = await AdminService.deleteAdmin(req.params.id);
@@ -265,6 +336,10 @@ export {
   getPendingProfilesCount,
   getPendingProfiles,
   getAllProfiles,
+  updateUser,
+  softDeleteUser,
+  restoreUser,
+  hardDeleteUser,
   approveProfile,
   rejectProfile,
   createAdmin,
@@ -273,6 +348,7 @@ export {
   rejectAdminRequest,
   getAllAdmins,
   updateAdmin,
+  updateAdminProfile,
   deleteAdmin,
   getDashboardStats
 };
