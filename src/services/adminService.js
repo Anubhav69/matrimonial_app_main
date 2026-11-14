@@ -2,8 +2,25 @@ import bcryptjs from 'bcryptjs';
 import { unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { Op } from 'sequelize';
-import sequelize, { User, UserProfile, CareerDetail, UserEducation, UserPhoto, UserInteraction, Message } from '../models/index.js';
+import { sequelize, User, UserProfile, CareerDetail, UserEducation, UserPhoto, UserInteraction, Message } from '../models/index.js';
 import AdminRequest from '../models/AdminRequest.js';
+import { validateEmail, validatePhone, validatePassword } from '../validators/authValidator.js';
+
+function normalizeAdminContact(data, requireContact = true) {
+  const emailInput = data.email ?? '';
+  const phoneInput = data.phone ?? '';
+  if (typeof emailInput !== 'string' || typeof phoneInput !== 'string') {
+    throw new Error('Email and phone must be strings');
+  }
+  const email = emailInput.trim().toLowerCase() || null;
+  const phone = phoneInput.trim() || null;
+  if (requireContact && !email && !phone) {
+    throw new Error('Either email or phone is required');
+  }
+  validateEmail(email);
+  validatePhone(phone);
+  return { email, phone };
+}
 
 /**
  * AdminService - Handles admin panel business logic
@@ -418,14 +435,10 @@ class AdminService {
    *   - Admin → an AdminRequest is created (pending super_admin approval)
    */
   static async createAdmin(requesterRole, requesterId, adminData) {
-    const { email, phone, password } = adminData;
+    const { email, phone } = normalizeAdminContact(adminData);
+    const { password } = adminData;
 
-    if (!email && !phone) {
-      throw new Error('Either email or phone is required');
-    }
-    if (!password) {
-      throw new Error('Password is required');
-    }
+    validatePassword(password);
 
     // Check if email/phone already exists
     if (email) {
@@ -659,10 +672,11 @@ class AdminService {
       throw new Error('Status must be active or inactive');
     }
 
+    const contactChanges = normalizeAdminContact(changes, false);
     const update = {};
     for (const field of ['email', 'phone']) {
       if (Object.prototype.hasOwnProperty.call(changes, field)) {
-        const value = changes[field] || null;
+        const value = contactChanges[field];
         if (value) {
           const existing = await User.findOne({
             where: { [field]: value, id: { [Op.ne]: admin.id }, is_deleted: false }
@@ -706,17 +720,11 @@ class AdminService {
       throw new Error('Only email and phone can be updated');
     }
 
+    const contactChanges = normalizeAdminContact(changes, false);
     const update = {};
     for (const field of fields) {
       if (!Object.prototype.hasOwnProperty.call(changes, field)) continue;
-      const rawValue = changes[field];
-      if (rawValue !== null && typeof rawValue !== 'string') throw new Error(`Invalid ${field}`);
-      const trimmedValue = rawValue?.trim() || null;
-      const value = field === 'email' && trimmedValue ? trimmedValue.toLowerCase() : trimmedValue;
-      if (value && value.length > (field === 'email' ? 255 : 20)) throw new Error(`Invalid ${field}`);
-      if (field === 'email' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-        throw new Error('Invalid email');
-      }
+      const value = contactChanges[field];
       if (value) {
         const existing = await User.findOne({ where: { [field]: value, id: { [Op.ne]: admin.id } } });
         if (existing) throw new Error(`${field === 'email' ? 'Email' : 'Phone'} already registered`);

@@ -361,6 +361,7 @@ All endpoints in this section require `Authorization: Bearer <token>` and approp
   "password": "SecureAdminPassword123"
 }
 ```
+- Provide at least one of `email` or `phone`. Email must be valid; phone must contain 10-15 digits and may include common formatting characters. Password must be at least 6 characters.
 
 ### Update Own Admin Profile
 - **Endpoint**: `PATCH /api/v1/admin/profile`

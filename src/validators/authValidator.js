@@ -5,7 +5,10 @@
 
 export const validateEmail = (email) => {
   if (!email) return { isValid: true };
-  
+
+  if (typeof email !== 'string' || email.length > 255) {
+    throw new Error('Invalid email format');
+  }
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
     throw new Error('Invalid email format');
@@ -15,16 +18,19 @@ export const validateEmail = (email) => {
 
 export const validatePhone = (phone) => {
   if (!phone) return { isValid: true };
-  
-  const phoneRegex = /^[0-9]{10,}$/;
-  if (!phoneRegex.test(phone.replace(/\D/g, ''))) {
+
+  if (typeof phone !== 'string' || phone.length > 20 || !/^[+0-9().\s-]+$/.test(phone)) {
+    throw new Error('Invalid phone number format');
+  }
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length < 10 || digits.length > 15) {
     throw new Error('Invalid phone number format');
   }
   return { isValid: true };
 };
 
 export const validatePassword = (password) => {
-  if (!password || password.trim().length === 0) {
+  if (typeof password !== 'string' || password.trim().length === 0) {
     throw new Error('Password is required');
   }
   
