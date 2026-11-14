@@ -46,6 +46,15 @@ const unblockUser = async (req, res) => {
   }
 };
 
+const reportUser = async (req, res) => {
+  try {
+    const result = await UserConnectionService.reportUser(req.params.senderId, req.params.receiverId, req.body?.reason);
+    res.status(201).json(result);
+  } catch (error) {
+    res.status(error.message === 'User not found' ? 404 : 400).json({ success: false, error: error.message });
+  }
+};
+
 const getReceivedInterests = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -86,4 +95,4 @@ const getBlockedUsers = async (req, res) => {
   }
 };
 
-export { sendInterest, respondToInterest, blockUser, unblockUser, getReceivedInterests, getSentInterests, getConnections, getBlockedUsers };
+export { sendInterest, respondToInterest, blockUser, unblockUser, reportUser, getReceivedInterests, getSentInterests, getConnections, getBlockedUsers };

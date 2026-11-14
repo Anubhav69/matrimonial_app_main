@@ -11,6 +11,7 @@ import chatRoutes from './routes/chatRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import { globalRateLimiter } from './middleware/rateLimiter.js';
 import { connectDB } from './models/index.js';
+import { ensureAppColumns } from './config/database.js';
 import initSocket from './socket/socketHandler.js';
 
 const app = express();
@@ -57,6 +58,9 @@ app.use('/api/v1/admin', adminRoutes);
 app.use(errorHandler);
 
 connectDB()
+  .then(() => {
+    return ensureAppColumns();
+  })
   .then(() => {
     initSocket(server);
     server.listen(PORT, () => {

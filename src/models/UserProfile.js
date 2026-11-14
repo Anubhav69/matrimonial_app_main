@@ -19,6 +19,7 @@ const UserProfile = sequelize.define('UserProfile', {
   birth_time: DataTypes.STRING(5),
   birth_place: DataTypes.STRING(100),
   gotra: DataTypes.STRING(100),
+  show_same_gotra: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   height_cm: DataTypes.INTEGER,
   marital_status: DataTypes.ENUM('unmarried', 'divorced', 'widowed'),
   religion: DataTypes.STRING(100),

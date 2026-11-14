@@ -113,6 +113,14 @@ class UserConnectionService {
     return { success: true, message: 'User unblocked successfully' };
   }
 
+  static async reportUser(senderId, receiverId, reason = 'Reported from profile') {
+    if (String(senderId) === String(receiverId)) throw new Error('You cannot report yourself');
+    const receiver = await User.findOne({ where: { id: receiverId, is_deleted: false } });
+    if (!receiver) throw new Error('User not found');
+    await UserInteraction.create({ sender_id: senderId, receiver_id: receiverId, type: 'reported' });
+    return { success: true, message: 'Profile report submitted', data: { receiver_id: receiverId, reason } };
+  }
+
   // Get all interests received (pending)
   static async getReceivedInterests(userId) {
     const interactions = await UserInteraction.findAll({

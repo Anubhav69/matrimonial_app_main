@@ -17,7 +17,7 @@ const UserInteraction = sequelize.define('UserInteraction', {
     references: { model: 'users', key: 'id' },
   },
   type: {
-    type: DataTypes.ENUM('interest', 'accepted', 'rejected', 'blocked'),
+    type: DataTypes.ENUM('interest', 'accepted', 'rejected', 'blocked', 'reported'),
     allowNull: false,
   },
 }, {

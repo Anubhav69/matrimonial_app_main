@@ -2,6 +2,7 @@ import express from 'express';
 import {
   sendInterest, respondToInterest,
   blockUser, unblockUser,
+  reportUser,
   getReceivedInterests, getSentInterests,
   getConnections, getBlockedUsers
 } from '../controllers/userConnectionController.js';
@@ -22,6 +23,7 @@ router.post('/:senderId/block/:receiverId', authenticateToken, requireOwnParam('
 
 // DELETE /api/v1/connections/:senderId/block/:receiverId      - unblock user
 router.delete('/:senderId/block/:receiverId', authenticateToken, requireOwnParam('senderId'), unblockUser);
+router.post('/:senderId/report/:receiverId', authenticateToken, requireOwnParam('senderId'), reportUser);
 
 // GET    /api/v1/connections/:userId/interests/received       - get received interests
 router.get('/:userId/interests/received', authenticateToken, requireOwnParam('userId'), getReceivedInterests);

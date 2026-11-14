@@ -1,7 +1,9 @@
 import bcryptjs from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { validateSignUpData, validateLoginData } from '../validators/authValidator.js';
+import { validateSignUpData, validateLoginData, validatePassword } from '../validators/authValidator.js';
 import { User } from '../models/index.js';
+import crypto from 'crypto';
+import nodemailer from 'nodemailer';
 
 /**
  * AuthService - Handles authentication logic
@@ -110,6 +112,37 @@ class AuthService {
       },
       token
     };
+  }
+
+  static async requestPasswordReset(identifier) {
+    const where = identifier.includes('@') ? { email: identifier } : { phone: identifier };
+    const user = await User.findOne({ where: { ...where, is_deleted: false } });
+    // Do not reveal whether an account exists.
+    if (!user || !user.email) return { success: true, message: 'If the account exists, a reset email has been sent' };
+    const token = crypto.randomBytes(32).toString('hex');
+    await user.update({ reset_password_token: token, reset_password_expires: new Date(Date.now() + 30 * 60 * 1000) });
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT || 587),
+      secure: String(process.env.SMTP_SECURE).toLowerCase() === 'true',
+      auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined
+    });
+    const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
+    await transporter.sendMail({
+      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      to: user.email,
+      subject: 'Reset your SoulMatch password',
+      text: `Use this link within 30 minutes to reset your password: ${resetUrl}`
+    });
+    return { success: true, message: 'If the account exists, a reset email has been sent' };
+  }
+
+  static async resetPassword(token, password) {
+    validatePassword(password);
+    const user = await User.findOne({ where: { reset_password_token: token, is_deleted: false } });
+    if (!user || !user.reset_password_expires || user.reset_password_expires < new Date()) throw new Error('Reset link is invalid or expired');
+    await user.update({ password_hash: await bcryptjs.hash(password, 10), reset_password_token: null, reset_password_expires: null });
+    return { success: true, message: 'Password reset successfully' };
   }
 
   /**

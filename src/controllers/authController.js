@@ -60,4 +60,22 @@ const login = async (req, res) => {
   }
 };
 
-export { signUp, login };
+const forgotPassword = async (req, res) => {
+  try {
+    const identifier = String(req.body?.emailOrPhone || req.body?.email || req.body?.phone || '').trim();
+    if (!identifier) return res.status(400).json({ success: false, error: 'Email or phone number is required' });
+    res.status(200).json(await AuthService.requestPasswordReset(identifier));
+  } catch (error) {
+    res.status(200).json({ success: true, message: 'If the account exists, a reset email has been sent' });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    res.status(200).json(await AuthService.resetPassword(String(req.body?.token || ''), String(req.body?.password || '')));
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+};
+
+export { signUp, login, forgotPassword, resetPassword };

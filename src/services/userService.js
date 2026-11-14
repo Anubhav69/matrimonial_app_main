@@ -62,10 +62,14 @@ class UserService {
     const validSortOrder = sort_order?.toUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
     // ── Profile filters ──────────────────────────────────────────────────────
+    const viewerProfile = await UserProfile.findOne({ where: { user_id: excludeId }, attributes: ['gotra', 'show_same_gotra'] });
     const profileWhere = {
       // Only show published profiles to regular users
       profile_status: 'published'
     };
+    if (!viewerProfile?.show_same_gotra && viewerProfile?.gotra) {
+      profileWhere.gotra = { [Op.ne]: viewerProfile.gotra };
+    }
     if (gender)        profileWhere.gender        = gender;
     if (marital_status) profileWhere.marital_status = Array.isArray(marital_status) ? { [Op.in]: marital_status } : marital_status;
     if (religion)      profileWhere.religion      = { [Op.like]: `%${religion}%` };
@@ -180,6 +184,7 @@ class UserService {
           religion:       profile.religion,
           caste:          profile.caste,
           mother_tongue:  profile.mother_tongue,
+          gotra:          profile.gotra,
           country:        profile.country,
           state:          profile.state,
           city:           profile.city,
