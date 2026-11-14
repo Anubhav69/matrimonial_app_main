@@ -129,7 +129,7 @@ class AuthService {
     });
     const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
     await transporter.sendMail({
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
+      from: process.env.SMTP_FROM || `${process.env.SMTP_FROM_NAME || 'Soul Match'} <${process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER}>`,
       to: user.email,
       subject: 'Reset your SoulMatch password',
       text: `Use this link within 30 minutes to reset your password: ${resetUrl}`
