@@ -1,5 +1,5 @@
 import express from 'express';
-import { signUp, login } from '../controllers/authController.js';
+import { signUp, login, forgotPassword, resetPassword } from '../controllers/authController.js';
 
 const router = express.Router();
 
@@ -19,5 +19,7 @@ router.post('/signup', signUp);
  * Authenticate user and return JWT token
  */
 router.post('/login', login);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 export default router;

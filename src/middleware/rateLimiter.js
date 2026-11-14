@@ -2,16 +2,16 @@ import rateLimit from 'express-rate-limit';
 
 // Global rate limiter for all APIs
 const globalRateLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Limit each IP to 100 requests per windowMs
+    max: Number(process.env.RATE_LIMIT_MAX || 10000),
+    windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 15 * 60 * 1000),
     message: {
         success: false,
         message: 'Too many requests from this IP, please try again after 15 minutes'
     },
     standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
     legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    skipSuccessfulRequests: false, // Count all requests including successful ones
-    skipFailedRequests: false, // Count all requests including failed ones
+    skipSuccessfulRequests: true,
+    skipFailedRequests: false,
     // Let express-rate-limit handle IP detection automatically
     // It will use req.ip by default
     handler: (req, res, next, options) => {
