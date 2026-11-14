@@ -87,7 +87,7 @@ const softDeleteUser = async (req, res) => {
   } catch (error) {
     res.status(error.message === 'Active user not found' ? 404 : 500).json({
       success: false,
-      message: 'Failed to deactivate user',
+      message: 'Failed to delete user',
       error: error.message
     });
   }
@@ -101,6 +101,21 @@ const restoreUser = async (req, res) => {
     res.status(error.message === 'Deleted user not found' ? 404 : 500).json({
       success: false,
       message: 'Failed to restore user',
+      error: error.message
+    });
+  }
+};
+
+const setUserAccountStatus = async (req, res) => {
+  try {
+    const result = await AdminService.setUserAccountStatus(req.params.userId, req.body?.status);
+    res.status(200).json(result);
+  } catch (error) {
+    const statusCode = error.message === 'User not found' ? 404 :
+      error.message === 'Invalid account status' ? 400 : 500;
+    res.status(statusCode).json({
+      success: false,
+      message: 'Failed to update user account status',
       error: error.message
     });
   }
@@ -339,6 +354,7 @@ export {
   updateUser,
   softDeleteUser,
   restoreUser,
+  setUserAccountStatus,
   hardDeleteUser,
   approveProfile,
   rejectProfile,

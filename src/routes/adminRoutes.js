@@ -8,6 +8,7 @@ import {
   updateUser,
   softDeleteUser,
   restoreUser,
+  setUserAccountStatus,
   hardDeleteUser,
   approveProfile,
   rejectProfile,
@@ -61,7 +62,7 @@ router.get('/profiles/pending', authenticateToken, requireAdmin, getPendingProfi
 /**
  * GET /api/v1/admin/profiles
  * List all profiles with optional filters
- * Query params: status (pending|published|rejected), search, page, limit
+ * Query params: status (pending|published|rejected), accountStatus (active|deactivated|deleted|all), search, page, limit
  */
 router.get('/profiles', authenticateToken, requireAdmin, getAllProfiles);
 
@@ -76,6 +77,13 @@ router.patch('/profiles/:userId', authenticateToken, requireAdmin, updateUser);
  * Restore a soft-deleted user account
  */
 router.patch('/profiles/:userId/restore', authenticateToken, requireAdmin, restoreUser);
+
+/**
+ * PATCH /api/v1/admin/profiles/:userId/status
+ * Activate or deactivate a user account
+ * Body: { status: "active" | "inactive" }
+ */
+router.patch('/profiles/:userId/status', authenticateToken, requireAdmin, setUserAccountStatus);
 
 /**
  * DELETE /api/v1/admin/profiles/:userId
